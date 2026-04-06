@@ -1,0 +1,678 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TaskFlow Build Guide — Build Your Own Spring Boot Project</title>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Source+Sans+3:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#080a0f;--bg2:#0e1118;--bg3:#141820;--bg4:#1a1f2c;--bg5:#212636;--bdr:#262d3e;--bdr2:#343d54;--t1:#e4e7ef;--t2:#929ab0;--t3:#5e667a;--acc:#44b89c;--acc2:rgba(68,184,156,.1);--acc3:#6dd4b9;--warn:#e8a23e;--warn2:rgba(232,162,62,.1);--info:#5b9cf6;--info2:rgba(91,156,246,.08);--red:#ef6060;--red2:rgba(239,96,96,.08);--pur:#b08df8;--r:10px;--rs:6px}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Source Sans 3',sans-serif;background:var(--bg);color:var(--t1);line-height:1.7;overflow-x:hidden}
+::-webkit-scrollbar{width:5px}::-webkit-scrollbar-track{background:var(--bg)}::-webkit-scrollbar-thumb{background:var(--bdr);border-radius:3px}
+
+.app{display:flex;min-height:100vh}
+.sidebar{width:272px;background:var(--bg2);border-right:1px solid var(--bdr);position:fixed;top:0;left:0;height:100vh;overflow-y:auto;z-index:100;display:flex;flex-direction:column}
+.sb-hdr{padding:20px 18px 14px;border-bottom:1px solid var(--bdr)}
+.sb-logo{font-family:'Instrument Serif',serif;font-size:22px;color:var(--t1)}
+.sb-logo em{color:var(--acc);font-style:italic}
+.sb-sub{font-size:11px;color:var(--t3);margin-top:3px;letter-spacing:.4px}
+.sb-phase{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--t3);letter-spacing:1.5px;text-transform:uppercase;padding:14px 18px 6px}
+.sb-nav{flex:1;padding:4px 8px 20px;overflow-y:auto}
+.sb-item{display:flex;align-items:center;gap:9px;padding:8px 12px;border-radius:var(--rs);cursor:pointer;font-size:12.5px;font-weight:500;color:var(--t2);margin-bottom:1px;transition:all .15s;position:relative}
+.sb-item:hover{background:var(--bg3);color:var(--t1)}
+.sb-item.active{background:var(--acc2);color:var(--acc)}
+.sb-item.active::before{content:'';position:absolute;left:0;top:50%;transform:translateY(-50%);width:3px;height:16px;background:var(--acc);border-radius:2px}
+.sb-num{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--t3);min-width:18px}
+.sb-item.active .sb-num{color:var(--acc)}
+.sb-prog{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--t3);margin-left:auto}
+.sb-ft{padding:12px 18px;border-top:1px solid var(--bdr);display:flex;flex-direction:column;gap:6px}
+.sb-bar{height:4px;background:var(--bg);border-radius:2px;overflow:hidden}
+.sb-fill{height:100%;background:linear-gradient(90deg,var(--acc),var(--acc3));border-radius:2px;transition:width .4s ease}
+.sb-ft-text{font-size:11px;color:var(--t3)}.sb-ft-text strong{color:var(--acc)}
+
+.main{margin-left:272px;flex:1}
+.mc{max-width:780px;margin:0 auto;padding:36px 28px 80px}
+
+.pg-hdr{margin-bottom:28px}
+.pg-ey{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--acc);letter-spacing:2px;text-transform:uppercase;margin-bottom:8px}
+.pg-title{font-family:'Instrument Serif',serif;font-size:clamp(26px,4vw,36px);color:var(--t1);line-height:1.2;margin-bottom:8px}
+.pg-desc{font-size:14px;color:var(--t2);max-width:580px}
+.pg-time{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--warn);background:var(--warn2);padding:4px 12px;border-radius:12px;margin-top:10px}
+
+/* Content blocks */
+.prose{font-size:14px;color:var(--t2);margin-bottom:16px;line-height:1.75}
+.prose strong{color:var(--t1);font-weight:600}
+.prose code{font-family:'JetBrains Mono',monospace;font-size:12px;background:var(--bg4);padding:2px 6px;border-radius:3px;color:var(--acc)}
+.prose a{color:var(--info);text-decoration:underline;text-underline-offset:2px}
+.prose a:hover{color:var(--acc)}
+
+.section{margin-bottom:24px}
+.section-title{font-family:'Instrument Serif',serif;font-size:20px;color:var(--t1);margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--bdr)}
+
+.step{background:var(--bg2);border:1px solid var(--bdr);border-radius:var(--r);margin-bottom:10px;overflow:hidden;transition:border-color .2s}
+.step:hover{border-color:var(--bdr2)}
+.step.done{opacity:.55}
+.step.done .step-title{text-decoration:line-through;text-decoration-color:var(--t3)}
+.step-hdr{display:flex;align-items:center;gap:10px;padding:12px 16px;cursor:pointer;user-select:none}
+.step-chk{width:20px;height:20px;border-radius:5px;border:2px solid var(--bdr);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .2s;flex-shrink:0;font-size:11px;color:transparent}
+.step-chk:hover{border-color:var(--acc)}
+.step.done .step-chk{background:var(--acc);border-color:var(--acc);color:#fff}
+.step-title{flex:1;font-size:13.5px;font-weight:600;color:var(--t1)}
+.step-arrow{color:var(--t3);font-size:16px;transition:transform .2s;flex-shrink:0}
+.step.open .step-arrow{transform:rotate(180deg)}
+.step-body{max-height:0;overflow:hidden;transition:max-height .4s ease}
+.step.open .step-body{max-height:20000px}
+.step-inner{padding:0 16px 16px}
+
+.tip{background:var(--warn2);border-left:3px solid var(--warn);border-radius:0 var(--rs) var(--rs) 0;padding:10px 14px;margin:10px 0;font-size:12.5px;color:var(--t2);line-height:1.65}
+.tip::before{content:'💡 ';font-weight:700}
+.tip strong{color:var(--warn)}
+
+.important{background:var(--red2);border-left:3px solid var(--red);border-radius:0 var(--rs) var(--rs) 0;padding:10px 14px;margin:10px 0;font-size:12.5px;color:var(--t2);line-height:1.65}
+.important::before{content:'⚠️ ';font-weight:700}
+.important strong{color:var(--red)}
+
+.note{background:var(--info2);border-left:3px solid var(--info);border-radius:0 var(--rs) var(--rs) 0;padding:10px 14px;margin:10px 0;font-size:12.5px;color:var(--t2);line-height:1.65}
+.note::before{content:'📖 '}.note strong{color:var(--info)}
+
+.interview{background:rgba(176,141,248,.06);border-left:3px solid var(--pur);border-radius:0 var(--rs) var(--rs) 0;padding:10px 14px;margin:10px 0;font-size:12.5px;color:var(--t2);line-height:1.65}
+.interview::before{content:'🎯 Interview: ';font-weight:700;color:var(--pur)}
+
+.code-block{background:var(--bg);border:1px solid var(--bdr);border-radius:var(--rs);margin:10px 0;overflow:hidden}
+.code-hdr{display:flex;justify-content:space-between;align-items:center;padding:6px 12px;background:var(--bg3);border-bottom:1px solid var(--bdr);font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--t3)}
+.code-copy{background:none;border:1px solid var(--bdr);color:var(--t3);padding:2px 8px;border-radius:4px;font-size:10px;cursor:pointer;font-family:inherit;transition:all .15s}
+.code-copy:hover{border-color:var(--acc);color:var(--acc)}
+.code-pre{padding:12px;overflow-x:auto;font-family:'JetBrains Mono',monospace;font-size:12px;line-height:1.6;color:var(--t2);white-space:pre;tab-size:4}
+.code-pre .kw{color:#c792ea}.code-pre .str{color:#c3e88d}.code-pre .cm{color:#546e7a;font-style:italic}.code-pre .ann{color:#ffcb6b}.code-pre .num{color:#f78c6c}.code-pre .fn{color:#82aaff}
+
+.tbl-wrap{overflow-x:auto;margin:10px 0}
+table{width:100%;border-collapse:collapse;font-size:12.5px}
+th{background:var(--bg3);color:var(--t1);font-weight:600;text-align:left;padding:8px 12px;border:1px solid var(--bdr)}
+td{padding:8px 12px;border:1px solid var(--bdr);color:var(--t2)}
+tr:nth-child(even) td{background:var(--bg2)}
+
+.links{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.link{font-size:11px;font-weight:500;padding:4px 10px;border-radius:14px;background:var(--bg3);color:var(--t2);text-decoration:none;border:1px solid var(--bdr);transition:all .15s}
+.link:hover{border-color:var(--acc);color:var(--acc);background:var(--acc2)}
+
+.checklist{margin:10px 0}
+.cl-item{display:flex;align-items:flex-start;gap:10px;padding:8px 0;border-bottom:1px solid var(--bdr);font-size:13px;color:var(--t2)}
+.cl-chk{width:18px;height:18px;border-radius:4px;border:2px solid var(--bdr);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;margin-top:2px;font-size:10px;color:transparent;transition:all .15s}
+.cl-chk:hover{border-color:var(--acc)}
+.cl-chk.checked{background:var(--acc);border-color:var(--acc);color:#fff}
+.cl-chk.checked+.cl-text{text-decoration:line-through;color:var(--t3)}
+.cl-text{flex:1}
+
+.folder{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--t2);background:var(--bg);border:1px solid var(--bdr);border-radius:var(--rs);padding:14px 16px;margin:10px 0;line-height:1.8;white-space:pre-wrap}
+.folder .dir{color:var(--info)}.folder .file{color:var(--t2)}.folder .hl{color:var(--acc);font-weight:600}.folder .cm{color:var(--t3);font-style:italic}
+
+.mobile-toggle{display:none;position:fixed;top:10px;left:10px;z-index:200;width:36px;height:36px;background:var(--bg2);border:1px solid var(--bdr);border-radius:var(--rs);cursor:pointer;color:var(--t1);font-size:16px;align-items:center;justify-content:center}
+.sb-close{display:none;position:absolute;top:14px;right:14px;background:none;border:none;color:var(--t2);font-size:18px;cursor:pointer}
+.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:90}
+.overlay.show{display:block}
+@media(max-width:768px){
+.sidebar{transform:translateX(-100%);transition:transform .25s;width:280px}
+.sidebar.open{transform:translateX(0)}.sb-close{display:block}.mobile-toggle{display:flex}
+.main{margin-left:0}.mc{padding:56px 14px 60px}.step-inner{padding:0 10px 14px}
+}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.step,.section{animation:fadeIn .3s ease forwards;opacity:0}
+</style>
+</head>
+<body>
+<button class="mobile-toggle" onclick="toggleSB()">☰</button>
+<div class="overlay" id="ov" onclick="toggleSB()"></div>
+<div class="app">
+<aside class="sidebar" id="sb">
+<button class="sb-close" onclick="toggleSB()">✕</button>
+<div class="sb-hdr">
+<div class="sb-logo"><em>TaskFlow</em> Build Guide</div>
+<div class="sb-sub">Spring Boot · PostgreSQL · JWT · REST</div>
+</div>
+<nav class="sb-nav" id="sbNav"></nav>
+<div class="sb-ft">
+<div class="sb-bar"><div class="sb-fill" id="sbFill" style="width:0%"></div></div>
+<div class="sb-ft-text">Progress: <strong id="sbProg">0%</strong> · <strong id="sbDone">0</strong>/<strong id="sbTotal">0</strong> steps</div>
+</div>
+</aside>
+<main class="main"><div class="mc" id="mc"></div></main>
+</div>
+<script>
+// ─── DATA ───
+const CH=[
+{id:"intro",title:"What We're Building & Why",time:"10 min read",desc:"TaskFlow is a personal task management REST API — a simplified Todoist/Trello backend. Users register, log in, create tasks, organize them into categories, set priorities/due dates, and mark them complete.",steps:[
+{t:"Why This Project Matters",body:`<div class="prose">TaskFlow is <strong>intentionally simpler than ChefBit</strong>. The goal is not complexity — it is <strong>OWNERSHIP</strong>. Every line of code must be yours. No AI writing code.</div>
+<div class="tbl-wrap"><table><tr><th>Why This Project?</th><th>How It Helps</th></tr>
+<tr><td><strong>Interview Coverage</strong></td><td>Covers every concept service companies test: CRUD, auth, relationships, validation, error handling</td></tr>
+<tr><td><strong>Relational Data</strong></td><td>User→Task→Category is a real model with 1:N and N:1 — exactly what your ChefBit schema uses</td></tr>
+<tr><td><strong>Authentication</strong></td><td>JWT + Spring Security, same pattern as ChefBit but built from scratch</td></tr>
+<tr><td><strong>Two-Project Narrative</strong></td><td>ChefBit (AI-assisted, production users) + TaskFlow (built entirely solo) = complete interview story</td></tr>
+<tr><td><strong>Achievable</strong></td><td>7–10 days at 3–4 hours daily</td></tr></table></div>
+<div class="interview">Your two-project narrative: "ChefBit shows I can ship products to real users. TaskFlow shows I understand the engineering principles behind them — built entirely from scratch without AI assistance."</div>`},
+
+{t:"API Endpoints Overview",body:`<div class="tbl-wrap"><table><tr><th>Feature</th><th>Endpoints</th><th>Concepts Covered</th></tr>
+<tr><td>User Registration & Login</td><td><code>POST /auth/register</code>, <code>POST /auth/login</code></td><td>Password hashing, JWT generation, DTOs</td></tr>
+<tr><td>Task CRUD</td><td><code>GET/POST/PUT/DELETE /tasks</code></td><td>REST design, validation, pagination</td></tr>
+<tr><td>Category Management</td><td><code>GET/POST /categories</code></td><td>1:N relationships, JPA mappings</td></tr>
+<tr><td>Filter & Search</td><td><code>GET /tasks?status=PENDING&priority=HIGH</code></td><td>Query params, Spring Data queries</td></tr>
+<tr><td>Mark Complete</td><td><code>PATCH /tasks/{id}/complete</code></td><td>Partial updates, PATCH semantics</td></tr>
+<tr><td>My Profile</td><td><code>GET /auth/me</code></td><td>SecurityContext, authenticated user</td></tr></table></div>`}
+]},
+
+{id:"tech",title:"Tech Stack & Project Structure",time:"10 min read",desc:"The standard Spring Boot project layout and technology choices — each picked for a specific reason you should be able to articulate in interviews.",steps:[
+{t:"Tech Stack Choices",body:`<div class="tbl-wrap"><table><tr><th>Layer</th><th>Technology</th><th>Why This Choice</th></tr>
+<tr><td>Language</td><td><strong>Java 17</strong></td><td>LTS version, most companies use 11 or 17</td></tr>
+<tr><td>Framework</td><td><strong>Spring Boot 3.x</strong></td><td>Latest stable, matches your resume</td></tr>
+<tr><td>Database</td><td><strong>PostgreSQL</strong></td><td>Same as ChefBit — reinforces experience</td></tr>
+<tr><td>ORM</td><td><strong>Spring Data JPA + Hibernate</strong></td><td>Industry standard, interview must-know</td></tr>
+<tr><td>Security</td><td><strong>Spring Security 6 + JWT (jjwt)</strong></td><td>Same pattern as ChefBit, built from scratch</td></tr>
+<tr><td>Validation</td><td><strong>Jakarta Bean Validation</strong></td><td>Built into Spring Boot</td></tr>
+<tr><td>Build Tool</td><td><strong>Maven</strong></td><td>Standard, pom.xml based</td></tr>
+<tr><td>Logging</td><td><strong>SLF4J + Logback</strong></td><td>Spring Boot default — replaces System.out.println</td></tr></table></div>
+<div class="links"><a class="link" href="https://start.spring.io/" target="_blank">🚀 Spring Initializr</a><a class="link" href="https://docs.spring.io/spring-boot/reference/" target="_blank">📄 Spring Boot 3 Docs</a><a class="link" href="https://www.baeldung.com/spring-boot" target="_blank">📖 Baeldung — Spring Boot</a></div>`},
+
+{t:"Folder Structure",body:`<div class="prose">Create this structure <strong>one layer at a time</strong> as you progress through each phase. Do NOT create all files at once.</div>
+<div class="folder"><span class="dir">taskflow/</span>
+├── <span class="dir">src/main/java/com/samprit/taskflow/</span>
+│   ├── <span class="hl">TaskflowApplication.java</span> <span class="cm">← Main class</span>
+│   ├── <span class="dir">config/</span>
+│   │   ├── <span class="file">SecurityConfig.java</span> <span class="cm">← Security filter chain</span>
+│   │   └── <span class="file">AppConfig.java</span> <span class="cm">← Beans (PasswordEncoder etc.)</span>
+│   ├── <span class="dir">controller/</span>
+│   │   ├── <span class="file">AuthController.java</span> <span class="cm">← Register + Login</span>
+│   │   ├── <span class="file">TaskController.java</span> <span class="cm">← Task CRUD</span>
+│   │   └── <span class="file">CategoryController.java</span>
+│   ├── <span class="dir">dto/</span>
+│   │   ├── <span class="dir">request/</span> <span class="cm">← RegisterRequest, LoginRequest, TaskRequest</span>
+│   │   └── <span class="dir">response/</span> <span class="cm">← AuthResponse, TaskResponse</span>
+│   ├── <span class="dir">entity/</span>
+│   │   ├── <span class="file">User.java</span>, <span class="file">Task.java</span>, <span class="file">Category.java</span>
+│   ├── <span class="dir">enums/</span>
+│   │   ├── <span class="file">TaskStatus.java</span> <span class="cm">← PENDING, IN_PROGRESS, COMPLETED</span>
+│   │   └── <span class="file">Priority.java</span> <span class="cm">← LOW, MEDIUM, HIGH</span>
+│   ├── <span class="dir">exception/</span>
+│   │   ├── <span class="hl">GlobalExceptionHandler.java</span> <span class="cm">← @ControllerAdvice</span>
+│   │   ├── <span class="file">ResourceNotFoundException.java</span>
+│   │   └── <span class="file">ErrorResponse.java</span>
+│   ├── <span class="dir">filter/</span>
+│   │   └── <span class="hl">JwtAuthenticationFilter.java</span> <span class="cm">← OncePerRequestFilter</span>
+│   ├── <span class="dir">repository/</span>
+│   │   ├── <span class="file">UserRepository.java</span>, <span class="file">TaskRepository.java</span>, <span class="file">CategoryRepository.java</span>
+│   ├── <span class="dir">service/</span>
+│   │   ├── <span class="file">AuthService.java</span>, <span class="file">TaskService.java</span>, <span class="file">CategoryService.java</span>
+│   │   └── <span class="file">CustomUserDetailsService.java</span>
+│   └── <span class="dir">util/</span>
+│       └── <span class="hl">JwtUtil.java</span> <span class="cm">← Token generation + validation</span>
+├── <span class="dir">src/main/resources/</span>
+│   └── <span class="hl">application.properties</span>
+└── <span class="file">pom.xml</span></div>`}
+]},
+
+{id:"phase1",title:"Phase 1 — Project Setup & Config",time:"30–45 min",desc:"Generate the project from Spring Initializr, add JWT dependencies, configure database connection and JWT properties, verify setup compiles and runs.",steps:[
+{t:"Step 1: Generate the Project",body:`<div class="prose">Go to <a href="https://start.spring.io/" target="_blank">start.spring.io</a> and configure:</div>
+<div class="tbl-wrap"><table><tr><th>Setting</th><th>Value</th></tr>
+<tr><td>Project</td><td>Maven</td></tr><tr><td>Language</td><td>Java</td></tr><tr><td>Spring Boot</td><td>3.x (latest stable)</td></tr>
+<tr><td>Group</td><td>com.samprit</td></tr><tr><td>Artifact</td><td>taskflow</td></tr><tr><td>Packaging</td><td>Jar</td></tr><tr><td>Java</td><td>17</td></tr></table></div>
+<div class="prose"><strong>Dependencies to add:</strong> Spring Web, Spring Data JPA, PostgreSQL Driver, Spring Security, Lombok, Validation</div>
+<div class="prose">Click <strong>Generate</strong>, download the zip, extract, and open in IntelliJ IDEA.</div>`},
+
+{t:"Step 2: Add JWT Library to pom.xml",body:`<div class="prose">The JWT library isn't on Spring Initializr. Add manually inside <code>&lt;dependencies&gt;</code>:</div>
+<div class="code-block"><div class="code-hdr"><span>pom.xml — JWT dependencies</span><button class="code-copy" onclick="copyCode(this)">Copy</button></div><pre class="code-pre"><span class="cm">&lt;!-- JWT dependencies --&gt;</span>
+<span class="kw">&lt;dependency&gt;</span>
+    <span class="kw">&lt;groupId&gt;</span>io.jsonwebtoken<span class="kw">&lt;/groupId&gt;</span>
+    <span class="kw">&lt;artifactId&gt;</span>jjwt-api<span class="kw">&lt;/artifactId&gt;</span>
+    <span class="kw">&lt;version&gt;</span><span class="str">0.12.6</span><span class="kw">&lt;/version&gt;</span>
+<span class="kw">&lt;/dependency&gt;</span>
+<span class="kw">&lt;dependency&gt;</span>
+    <span class="kw">&lt;groupId&gt;</span>io.jsonwebtoken<span class="kw">&lt;/groupId&gt;</span>
+    <span class="kw">&lt;artifactId&gt;</span>jjwt-impl<span class="kw">&lt;/artifactId&gt;</span>
+    <span class="kw">&lt;version&gt;</span><span class="str">0.12.6</span><span class="kw">&lt;/version&gt;</span>
+    <span class="kw">&lt;scope&gt;</span>runtime<span class="kw">&lt;/scope&gt;</span>
+<span class="kw">&lt;/dependency&gt;</span>
+<span class="kw">&lt;dependency&gt;</span>
+    <span class="kw">&lt;groupId&gt;</span>io.jsonwebtoken<span class="kw">&lt;/groupId&gt;</span>
+    <span class="kw">&lt;artifactId&gt;</span>jjwt-jackson<span class="kw">&lt;/artifactId&gt;</span>
+    <span class="kw">&lt;version&gt;</span><span class="str">0.12.6</span><span class="kw">&lt;/version&gt;</span>
+    <span class="kw">&lt;scope&gt;</span>runtime<span class="kw">&lt;/scope&gt;</span>
+<span class="kw">&lt;/dependency&gt;</span></pre></div>
+<div class="tip"><strong>After adding,</strong> right-click pom.xml in IntelliJ → Maven → Reload Project to download dependencies.</div>
+<div class="links"><a class="link" href="https://github.com/jwtk/jjwt" target="_blank">📄 JJWT GitHub</a></div>`},
+
+{t:"Step 3: Configure application.properties",body:`<div class="code-block"><div class="code-hdr"><span>src/main/resources/application.properties</span><button class="code-copy" onclick="copyCode(this)">Copy</button></div><pre class="code-pre"><span class="cm"># ===== Database Configuration =====</span>
+spring.datasource.url=<span class="str">jdbc:postgresql://localhost:5432/taskflow</span>
+spring.datasource.username=<span class="str">postgres</span>
+spring.datasource.password=<span class="str">your_password_here</span>
+
+<span class="cm"># ===== JPA / Hibernate =====</span>
+spring.jpa.hibernate.ddl-auto=<span class="str">update</span>
+spring.jpa.show-sql=<span class="str">true</span>
+spring.jpa.properties.hibernate.format_sql=<span class="str">true</span>
+spring.jpa.properties.hibernate.dialect=<span class="str">org.hibernate.dialect.PostgreSQLDialect</span>
+
+<span class="cm"># ===== JWT Configuration =====</span>
+jwt.secret=<span class="str">my-super-secret-key-that-is-at-least-256-bits-long-for-HS256</span>
+jwt.expiration=<span class="num">900000</span>
+
+<span class="cm"># ===== Server =====</span>
+server.port=<span class="num">8080</span></pre></div>
+<div class="important"><strong>JWT secret is in properties, NOT hardcoded in Java.</strong> This is the fix for the ChefBit mistake. In production, override with an environment variable.</div>
+<div class="interview"><strong>ddl-auto=update</strong> auto-updates DB schema from entities. In production, use 'none' with Flyway migrations. <strong>jwt.expiration=900000</strong> = 15 minutes in ms. <strong>show-sql=true</strong> prints SQL for debugging — turn off in production.</div>`},
+
+{t:"Step 4: Create PostgreSQL Database",body:`<div class="code-block"><div class="code-hdr"><span>psql or pgAdmin</span><button class="code-copy" onclick="copyCode(this)">Copy</button></div><pre class="code-pre"><span class="kw">CREATE DATABASE</span> taskflow;</pre></div>
+<div class="prose">That's it. Hibernate creates tables automatically via <code>ddl-auto=update</code>.</div>`},
+
+{t:"Step 5: Temporary Security Config (Verify Setup)",body:`<div class="prose">Spring Security blocks everything by default. Create a temporary config to verify the app starts:</div>
+<div class="code-block"><div class="code-hdr"><span>config/SecurityConfig.java — TEMPORARY</span><button class="code-copy" onclick="copyCode(this)">Copy</button></div><pre class="code-pre"><span class="ann">@Configuration</span>
+<span class="ann">@EnableWebSecurity</span>
+<span class="kw">public class</span> <span class="fn">SecurityConfig</span> {
+
+    <span class="ann">@Bean</span>
+    <span class="kw">public</span> SecurityFilterChain <span class="fn">filterChain</span>(HttpSecurity http) <span class="kw">throws</span> Exception {
+        http
+            .csrf(csrf -> csrf.disable())
+            .authorizeHttpRequests(auth -> auth
+                .anyRequest().permitAll()
+            );
+        <span class="kw">return</span> http.build();
+    }
+}</pre></div>
+<div class="prose">Run the application. If you see <strong>"Started TaskflowApplication"</strong> with no errors, your setup is correct.</div>
+<div class="note">If you get a database connection error: Is PostgreSQL running? Is the database name correct? Is the password correct?</div>`}
+]},
+
+{id:"phase2",title:"Phase 2 — Database & Entity Design",time:"1–1.5 hours",desc:"Design the data model with User, Task, and Category entities. Understand JPA annotations, relationships (1:N, N:1), and why @Data is dangerous on entities.",steps:[
+{t:"Data Model Overview",body:`<div class="tbl-wrap"><table><tr><th>Entity</th><th>Fields</th><th>Relationships</th></tr>
+<tr><td><strong>User</strong></td><td>id, name, email, password, createdAt</td><td>One User → Many Tasks, One User → Many Categories</td></tr>
+<tr><td><strong>Task</strong></td><td>id, title, description, status, priority, dueDate, createdAt, updatedAt</td><td>Many Tasks → One User, Many Tasks → One Category (optional)</td></tr>
+<tr><td><strong>Category</strong></td><td>id, name, user (owner), createdAt</td><td>One Category → Many Tasks, Many Categories → One User</td></tr></table></div>
+<div class="prose">In database terms: <code>tasks</code> table has <code>user_id</code> FK → <code>users</code> and optional <code>category_id</code> FK → <code>categories</code>. <code>categories</code> has <code>user_id</code> FK → <code>users</code>.</div>`},
+
+{t:"Create Enums: TaskStatus & Priority",body:`<div class="code-block"><div class="code-hdr"><span>enums/TaskStatus.java</span><button class="code-copy" onclick="copyCode(this)">Copy</button></div><pre class="code-pre"><span class="kw">public enum</span> <span class="fn">TaskStatus</span> {
+    PENDING,
+    IN_PROGRESS,
+    COMPLETED
+}</pre></div>
+<div class="code-block"><div class="code-hdr"><span>enums/Priority.java</span><button class="code-copy" onclick="copyCode(this)">Copy</button></div><pre class="code-pre"><span class="kw">public enum</span> <span class="fn">Priority</span> {
+    LOW,
+    MEDIUM,
+    HIGH
+}</pre></div>
+<div class="tip">Use <code>@Enumerated(EnumType.STRING)</code> always. <strong>Never use ORDINAL</strong> — it stores 0,1,2 and breaks if you reorder enums.</div>`},
+
+{t:"Create User Entity (with full annotation explanation)",body:`<div class="prose">Read every annotation and understand what it does. This entity has extensive comments for learning.</div>
+<div class="code-block"><div class="code-hdr"><span>entity/User.java</span><button class="code-copy" onclick="copyCode(this)">Copy</button></div><pre class="code-pre"><span class="ann">@Entity</span>                    <span class="cm">// Marks as JPA entity (maps to DB table)</span>
+<span class="ann">@Table</span>(name = <span class="str">"users"</span>)    <span class="cm">// 'user' is reserved in PostgreSQL!</span>
+<span class="ann">@Getter</span> <span class="ann">@Setter</span>            <span class="cm">// Lombok: generates getters/setters</span>
+<span class="ann">@NoArgsConstructor</span>         <span class="cm">// JPA requires empty constructor</span>
+<span class="ann">@AllArgsConstructor</span>
+<span class="kw">public class</span> <span class="fn">User</span> {
+
+    <span class="ann">@Id</span>
+    <span class="ann">@GeneratedValue</span>(strategy = GenerationType.IDENTITY)
+    <span class="kw">private</span> Long id;
+
+    <span class="ann">@Column</span>(nullable = <span class="kw">false</span>)
+    <span class="kw">private</span> String name;
+
+    <span class="ann">@Column</span>(nullable = <span class="kw">false</span>, unique = <span class="kw">true</span>)
+    <span class="kw">private</span> String email;
+
+    <span class="ann">@Column</span>(nullable = <span class="kw">false</span>)
+    <span class="kw">private</span> String password;  <span class="cm">// BCrypt hashed, NEVER plain text</span>
+
+    <span class="ann">@Column</span>(nullable = <span class="kw">false</span>, updatable = <span class="kw">false</span>)
+    <span class="kw">private</span> LocalDateTime createdAt;
+
+    <span class="ann">@OneToMany</span>(mappedBy = <span class="str">"user"</span>, cascade = CascadeType.ALL, orphanRemoval = <span class="kw">true</span>)
+    <span class="kw">private</span> List&lt;Task&gt; tasks = <span class="kw">new</span> ArrayList&lt;&gt;();
+
+    <span class="ann">@OneToMany</span>(mappedBy = <span class="str">"user"</span>, cascade = CascadeType.ALL, orphanRemoval = <span class="kw">true</span>)
+    <span class="kw">private</span> List&lt;Category&gt; categories = <span class="kw">new</span> ArrayList&lt;&gt;();
+
+    <span class="ann">@PrePersist</span>  <span class="cm">// Runs BEFORE first save to database</span>
+    <span class="kw">protected void</span> <span class="fn">onCreate</span>() {
+        <span class="kw">this</span>.createdAt = LocalDateTime.now();
+    }
+}</pre></div>
+<div class="important"><strong>We use @Getter @Setter separately, NOT @Data.</strong> @Data generates equals/hashCode using ALL fields. For JPA entities this causes: 1) Lazy collections loaded unexpectedly. 2) Infinite loops (User.hashCode calls Task.hashCode which calls User.hashCode). 3) Two objects for the same DB row may not be .equals(). This is the fix for ChefBit's @Data problem.</div>
+<div class="links"><a class="link" href="https://www.baeldung.com/jpa-entity-equality" target="_blank">📖 Baeldung — JPA Entity Equality</a><a class="link" href="https://vladmihalcea.com/the-best-way-to-map-a-onetoone-relationship-with-jpa-and-hibernate/" target="_blank">📖 Vlad Mihalcea — JPA Mappings</a></div>`},
+
+{t:"Create Task Entity",body:`<div class="code-block"><div class="code-hdr"><span>entity/Task.java</span><button class="code-copy" onclick="copyCode(this)">Copy</button></div><pre class="code-pre"><span class="ann">@Entity</span>
+<span class="ann">@Table</span>(name = <span class="str">"tasks"</span>)
+<span class="ann">@Getter</span> <span class="ann">@Setter</span> <span class="ann">@NoArgsConstructor</span> <span class="ann">@AllArgsConstructor</span>
+<span class="kw">public class</span> <span class="fn">Task</span> {
+
+    <span class="ann">@Id</span>
+    <span class="ann">@GeneratedValue</span>(strategy = GenerationType.IDENTITY)
+    <span class="kw">private</span> Long id;
+
+    <span class="ann">@Column</span>(nullable = <span class="kw">false</span>)
+    <span class="kw">private</span> String title;
+
+    <span class="ann">@Column</span>(length = <span class="num">500</span>)
+    <span class="kw">private</span> String description;
+
+    <span class="ann">@Enumerated</span>(EnumType.STRING)
+    <span class="ann">@Column</span>(nullable = <span class="kw">false</span>)
+    <span class="kw">private</span> TaskStatus status = TaskStatus.PENDING;
+
+    <span class="ann">@Enumerated</span>(EnumType.STRING)
+    <span class="ann">@Column</span>(nullable = <span class="kw">false</span>)
+    <span class="kw">private</span> Priority priority = Priority.MEDIUM;
+
+    <span class="kw">private</span> LocalDate dueDate;
+
+    <span class="ann">@ManyToOne</span>(fetch = FetchType.LAZY)
+    <span class="ann">@JoinColumn</span>(name = <span class="str">"user_id"</span>, nullable = <span class="kw">false</span>)
+    <span class="kw">private</span> User user;
+
+    <span class="ann">@ManyToOne</span>(fetch = FetchType.LAZY)
+    <span class="ann">@JoinColumn</span>(name = <span class="str">"category_id"</span>)  <span class="cm">// Nullable — task can exist without category</span>
+    <span class="kw">private</span> Category category;
+
+    <span class="kw">private</span> LocalDateTime createdAt;
+    <span class="kw">private</span> LocalDateTime updatedAt;
+
+    <span class="ann">@PrePersist</span>
+    <span class="kw">protected void</span> <span class="fn">onCreate</span>() {
+        <span class="kw">this</span>.createdAt = LocalDateTime.now();
+        <span class="kw">this</span>.updatedAt = LocalDateTime.now();
+    }
+
+    <span class="ann">@PreUpdate</span>  <span class="cm">// Runs BEFORE every update</span>
+    <span class="kw">protected void</span> <span class="fn">onUpdate</span>() {
+        <span class="kw">this</span>.updatedAt = LocalDateTime.now();
+    }
+}</pre></div>
+<div class="interview"><strong>@ManyToOne(fetch = FetchType.LAZY)</strong> — default for @ManyToOne is EAGER. Setting LAZY means the User object loads only when you call <code>task.getUser()</code>, saving unnecessary DB queries. This is an N+1 prevention technique.</div>`},
+
+{t:"Create Category Entity",body:`<div class="code-block"><div class="code-hdr"><span>entity/Category.java</span><button class="code-copy" onclick="copyCode(this)">Copy</button></div><pre class="code-pre"><span class="ann">@Entity</span>
+<span class="ann">@Table</span>(name = <span class="str">"categories"</span>)
+<span class="ann">@Getter</span> <span class="ann">@Setter</span> <span class="ann">@NoArgsConstructor</span> <span class="ann">@AllArgsConstructor</span>
+<span class="kw">public class</span> <span class="fn">Category</span> {
+
+    <span class="ann">@Id</span>
+    <span class="ann">@GeneratedValue</span>(strategy = GenerationType.IDENTITY)
+    <span class="kw">private</span> Long id;
+
+    <span class="ann">@Column</span>(nullable = <span class="kw">false</span>)
+    <span class="kw">private</span> String name;
+
+    <span class="ann">@ManyToOne</span>(fetch = FetchType.LAZY)
+    <span class="ann">@JoinColumn</span>(name = <span class="str">"user_id"</span>, nullable = <span class="kw">false</span>)
+    <span class="kw">private</span> User user;
+
+    <span class="ann">@OneToMany</span>(mappedBy = <span class="str">"category"</span>)
+    <span class="kw">private</span> List&lt;Task&gt; tasks = <span class="kw">new</span> ArrayList&lt;&gt;();
+
+    <span class="kw">private</span> LocalDateTime createdAt;
+
+    <span class="ann">@PrePersist</span>
+    <span class="kw">protected void</span> <span class="fn">onCreate</span>() {
+        <span class="kw">this</span>.createdAt = LocalDateTime.now();
+    }
+}</pre></div>
+<div class="prose"><strong>Verify:</strong> Run the app. Check console for Hibernate SQL creating 3 tables. Open pgAdmin/psql and verify tables exist with correct columns and foreign keys. If you see table creation SQL, entities are correct. If not, check for missing <code>@Entity</code> or wrong imports (use <code>jakarta.persistence</code>, NOT <code>javax.persistence</code>).</div>`}
+]},
+
+{id:"phase3",title:"Phase 3 — Repository Layer",time:"20–30 min",desc:"The simplest layer. Spring Data JPA generates SQL from method names. Extend JpaRepository and define custom finder methods.",steps:[
+{t:"UserRepository",body:`<div class="code-block"><div class="code-hdr"><span>repository/UserRepository.java</span><button class="code-copy" onclick="copyCode(this)">Copy</button></div><pre class="code-pre"><span class="ann">@Repository</span>
+<span class="kw">public interface</span> <span class="fn">UserRepository</span> <span class="kw">extends</span> JpaRepository&lt;User, Long&gt; {
+
+    Optional&lt;User&gt; <span class="fn">findByEmail</span>(String email);
+    <span class="cm">// → SELECT * FROM users WHERE email = ?</span>
+
+    <span class="kw">boolean</span> <span class="fn">existsByEmail</span>(String email);
+    <span class="cm">// → SELECT CASE WHEN COUNT(*) > 0 THEN true ELSE false END FROM users WHERE email = ?</span>
+}</pre></div>`},
+
+{t:"TaskRepository",body:`<div class="code-block"><div class="code-hdr"><span>repository/TaskRepository.java</span><button class="code-copy" onclick="copyCode(this)">Copy</button></div><pre class="code-pre"><span class="ann">@Repository</span>
+<span class="kw">public interface</span> <span class="fn">TaskRepository</span> <span class="kw">extends</span> JpaRepository&lt;Task, Long&gt; {
+
+    List&lt;Task&gt; <span class="fn">findByUserId</span>(Long userId);
+    List&lt;Task&gt; <span class="fn">findByUserIdAndStatus</span>(Long userId, TaskStatus status);
+    List&lt;Task&gt; <span class="fn">findByUserIdAndPriority</span>(Long userId, Priority priority);
+    List&lt;Task&gt; <span class="fn">findByUserIdAndCategoryId</span>(Long userId, Long categoryId);
+    <span class="kw">long</span> <span class="fn">countByUserIdAndStatus</span>(Long userId, TaskStatus status);
+}</pre></div>`},
+
+{t:"CategoryRepository",body:`<div class="code-block"><div class="code-hdr"><span>repository/CategoryRepository.java</span><button class="code-copy" onclick="copyCode(this)">Copy</button></div><pre class="code-pre"><span class="ann">@Repository</span>
+<span class="kw">public interface</span> <span class="fn">CategoryRepository</span> <span class="kw">extends</span> JpaRepository&lt;Category, Long&gt; {
+
+    List&lt;Category&gt; <span class="fn">findByUserId</span>(Long userId);
+    Optional&lt;Category&gt; <span class="fn">findByIdAndUserId</span>(Long id, Long userId);
+}</pre></div>
+<div class="interview"><strong>How Query Derivation works:</strong> Spring Data parses method names → generates SQL. <code>findBy</code> + FieldName + <code>And/Or</code> + FieldName. You get <code>save()</code>, <code>findById()</code>, <code>findAll()</code>, <code>deleteById()</code>, <code>count()</code> for FREE from JpaRepository.</div>
+<div class="links"><a class="link" href="https://docs.spring.io/spring-data/jpa/reference/jpa/query-methods.html" target="_blank">📄 Spring Data Query Methods Docs</a><a class="link" href="https://www.baeldung.com/spring-data-derived-queries" target="_blank">📖 Baeldung — Derived Queries</a></div>`}
+]},
+
+{id:"phase4",title:"Phase 4 — Service Layer (Business Logic)",time:"2–2.5 hours",desc:"The core of your application. DTOs for API contracts, AuthService for registration/login, TaskService for CRUD. Constructor injection throughout. YOU must build several methods yourself.",steps:[
+{t:"DTOs — Never Expose Entities Directly",body:`<div class="prose">A DTO carries data between layers. Why not return entities? 1) <strong>Security:</strong> Entity has password field. 2) <strong>Control:</strong> You choose exactly which fields the client sees. 3) <strong>Decoupling:</strong> API contract stays stable even if entity changes.</div>
+<div class="prose"><strong>Build these files yourself:</strong> <code>RegisterRequest</code>, <code>LoginRequest</code>, <code>TaskRequest</code>, <code>CategoryRequest</code> (request DTOs with <code>@NotBlank</code>, <code>@Email</code>, <code>@Size</code> validation). <code>AuthResponse</code>, <code>TaskResponse</code> (response DTOs — only the fields you want the client to see).</div>
+<div class="tip">The guide gives you the complete DTO code in the original document. Type it out yourself — don't copy-paste. The muscle memory matters.</div>`},
+
+{t:"AuthService — Registration & Login (Complete Example)",body:`<div class="prose">This is given as a <strong>complete example</strong> for you to follow. Study the pattern: constructor injection, check existence, hash password, generate JWT, return DTO.</div>
+<div class="code-block"><div class="code-hdr"><span>service/AuthService.java — Full implementation</span><button class="code-copy" onclick="copyCode(this)">Copy</button></div><pre class="code-pre"><span class="ann">@Service</span>
+<span class="kw">public class</span> <span class="fn">AuthService</span> {
+
+    <span class="kw">private final</span> UserRepository userRepository;
+    <span class="kw">private final</span> PasswordEncoder passwordEncoder;
+    <span class="kw">private final</span> JwtUtil jwtUtil;
+
+    <span class="cm">// CONSTRUCTOR INJECTION — the correct way</span>
+    <span class="kw">public</span> <span class="fn">AuthService</span>(UserRepository userRepository,
+                       PasswordEncoder passwordEncoder,
+                       JwtUtil jwtUtil) {
+        <span class="kw">this</span>.userRepository = userRepository;
+        <span class="kw">this</span>.passwordEncoder = passwordEncoder;
+        <span class="kw">this</span>.jwtUtil = jwtUtil;
+    }
+
+    <span class="kw">public</span> AuthResponse <span class="fn">register</span>(RegisterRequest request) {
+        <span class="cm">// 1. Check duplicate email</span>
+        <span class="kw">if</span> (userRepository.existsByEmail(request.getEmail())) {
+            <span class="kw">throw new</span> DuplicateResourceException(<span class="str">"Email already registered"</span>);
+        }
+        <span class="cm">// 2. Create + hash password</span>
+        User user = <span class="kw">new</span> User();
+        user.setName(request.getName());
+        user.setEmail(request.getEmail());
+        user.setPassword(passwordEncoder.encode(request.getPassword()));
+        <span class="cm">// 3. Save</span>
+        User saved = userRepository.save(user);
+        <span class="cm">// 4. Generate JWT + return DTO</span>
+        String token = jwtUtil.generateToken(saved.getEmail());
+        <span class="kw">return new</span> AuthResponse(token, saved.getName(), saved.getEmail());
+    }
+
+    <span class="kw">public</span> AuthResponse <span class="fn">login</span>(LoginRequest request) {
+        User user = userRepository.findByEmail(request.getEmail())
+            .orElseThrow(() -> <span class="kw">new</span> RuntimeException(<span class="str">"Invalid email or password"</span>));
+        <span class="kw">if</span> (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
+            <span class="kw">throw new</span> RuntimeException(<span class="str">"Invalid email or password"</span>);
+            <span class="cm">// Same message for both — prevents attacker enumeration</span>
+        }
+        String token = jwtUtil.generateToken(user.getEmail());
+        <span class="kw">return new</span> AuthResponse(token, user.getName(), user.getEmail());
+    }
+}</pre></div>
+<div class="important"><strong>Constructor injection with final fields.</strong> This is the pattern missing in ChefBit. Every service in TaskFlow follows this pattern.</div>`},
+
+{t:"TaskService — YOU Build These Methods",body:`<div class="prose">The guide gives you <code>createTask()</code> and <code>getMyTasks()</code> as complete examples. <strong>YOU must build the rest yourself</strong> following the same pattern:</div>
+<div class="tbl-wrap"><table><tr><th>Method</th><th>What It Does</th><th>Key Logic</th></tr>
+<tr><td><code>updateTask(Long id, TaskRequest req, String email)</code></td><td>Update existing task</td><td>Find by ID, verify <code>task.getUser().getEmail()</code> matches logged-in user, update fields, save</td></tr>
+<tr><td><code>deleteTask(Long id, String email)</code></td><td>Delete a task</td><td>Find, verify ownership, <code>taskRepository.delete(task)</code></td></tr>
+<tr><td><code>markComplete(Long id, String email)</code></td><td>Set status to COMPLETED</td><td>Find, verify ownership, <code>setStatus(TaskStatus.COMPLETED)</code>, save</td></tr>
+<tr><td><code>getByStatus(TaskStatus, String email)</code></td><td>Filter by status</td><td>Get userId, call <code>findByUserIdAndStatus</code></td></tr>
+<tr><td><code>getByPriority(Priority, String email)</code></td><td>Filter by priority</td><td>Get userId, call <code>findByUserIdAndPriority</code></td></tr></table></div>
+<div class="important"><strong>KEY pattern in every method:</strong> always verify the task belongs to the logged-in user. Never let User A modify User B's tasks. This is authorization logic. Get the user from SecurityContext, never from the request body.</div>`}
+]},
+
+{id:"phase5",title:"Phase 5 — REST Controllers",time:"1.5–2 hours",desc:"Thin controllers that handle HTTP mapping, extract data, call services, return responses. No business logic here. Understand @AuthenticationPrincipal for getting the logged-in user.",steps:[
+{t:"Getting the Authenticated User",body:`<div class="code-block"><div class="code-hdr"><span>How to access the current user in controllers</span></div><pre class="code-pre"><span class="cm">// This injects the currently authenticated user's UserDetails</span>
+<span class="ann">@AuthenticationPrincipal</span> UserDetails userDetails
+
+<span class="cm">// Get their email:</span>
+String email = userDetails.getUsername();</pre></div>
+<div class="interview">"I get the authenticated user from SecurityContext, not from the request body. This prevents users from impersonating others."</div>`},
+
+{t:"AuthController & TaskController — Build These",body:`<div class="prose">The guide provides <code>AuthController</code> (register, login, me) and partial <code>TaskController</code> (createTask, getMyTasks). <strong>YOU build the remaining endpoints:</strong></div>
+<div class="code-block"><div class="code-hdr"><span>Endpoints you need to implement</span></div><pre class="code-pre"><span class="ann">@GetMapping</span>(<span class="str">"/{id}"</span>)      <span class="cm">→ getTaskById</span>
+<span class="ann">@PutMapping</span>(<span class="str">"/{id}"</span>)      <span class="cm">→ updateTask</span>
+<span class="ann">@DeleteMapping</span>(<span class="str">"/{id}"</span>)   <span class="cm">→ deleteTask</span>
+<span class="ann">@PatchMapping</span>(<span class="str">"/{id}/complete"</span>) <span class="cm">→ markComplete</span>
+<span class="ann">@GetMapping</span>(params = <span class="str">"status"</span>)   <span class="cm">→ filterByStatus</span>
+<span class="ann">@GetMapping</span>(params = <span class="str">"priority"</span>) <span class="cm">→ filterByPriority</span></pre></div>
+<div class="tbl-wrap"><table><tr><th>Method</th><th>Use Case</th><th>Idempotent?</th><th>Body?</th></tr>
+<tr><td>GET</td><td>Read</td><td>Yes</td><td>No</td></tr>
+<tr><td>POST</td><td>Create</td><td>No</td><td>Yes</td></tr>
+<tr><td>PUT</td><td>Full update</td><td>Yes</td><td>Yes</td></tr>
+<tr><td>PATCH</td><td>Partial update</td><td>Not always</td><td>Yes</td></tr>
+<tr><td>DELETE</td><td>Remove</td><td>Yes</td><td>No</td></tr></table></div>`}
+]},
+
+{id:"phase6",title:"Phase 6 — JWT Auth & Spring Security",time:"2–3 hours",desc:"The hardest and most interview-critical phase. Every line maps to questions you WILL be asked. Build JwtUtil, CustomUserDetailsService, JwtAuthenticationFilter, and final SecurityConfig.",steps:[
+{t:"The Complete JWT Auth Flow (Memorize This)",body:`<div class="prose">Before writing code, understand the flow. <strong>If an interviewer says "walk me through your auth flow," describe these 9 steps:</strong></div>
+<div class="tbl-wrap"><table><tr><th>#</th><th>Step</th></tr>
+<tr><td>1</td><td>User sends POST /auth/login with credentials</td></tr>
+<tr><td>2</td><td>Server validates credentials, generates signed JWT, returns it</td></tr>
+<tr><td>3</td><td>Client stores token (in memory or secure storage)</td></tr>
+<tr><td>4</td><td>Every request sends <code>Authorization: Bearer &lt;token&gt;</code> header</td></tr>
+<tr><td>5</td><td><strong>JwtAuthenticationFilter</strong> intercepts BEFORE controller</td></tr>
+<tr><td>6</td><td>Filter extracts token, validates signature + expiry, extracts email</td></tr>
+<tr><td>7</td><td>Filter loads UserDetails from DB using the email</td></tr>
+<tr><td>8</td><td>Filter creates Authentication object, sets in <strong>SecurityContextHolder</strong></td></tr>
+<tr><td>9</td><td>Request proceeds to controller with authenticated user available</td></tr></table></div>`},
+
+{t:"JwtUtil — Token Generation & Validation",body:`<div class="prose">Handles all JWT operations. Secret key from <code>application.properties</code> via <code>@Value</code> — NOT hardcoded.</div>
+<div class="prose"><strong>Key methods to implement:</strong> <code>generateToken(email)</code>, <code>extractEmail(token)</code>, <code>isTokenExpired(token)</code>, <code>validateToken(token, email)</code>. The guide provides the complete code — type it out yourself and understand each line.</div>
+<div class="note">For the secret key to work with BASE64 decode, put a <strong>base64-encoded string</strong> in application.properties. Generate one by encoding a long random string (32+ chars).</div>
+<div class="links"><a class="link" href="https://github.com/jwtk/jjwt#quickstart" target="_blank">📄 JJWT Quickstart</a><a class="link" href="https://jwt.io/" target="_blank">🔧 JWT.io — Debugger</a></div>`},
+
+{t:"JwtAuthenticationFilter — The Heart of JWT Auth",body:`<div class="prose">Extends <code>OncePerRequestFilter</code>. Runs on EVERY request before the controller. The 10-step doFilterInternal logic is the most interview-critical code in the entire project.</div>
+<div class="interview"><strong>Why OncePerRequestFilter?</strong> A regular Filter can execute multiple times on forwarded requests. OncePerRequestFilter guarantees JWT validation runs exactly once per HTTP request — you don't want to validate the token twice or set SecurityContext twice.</div>
+<div class="prose">Key components to know by name: <strong>OncePerRequestFilter</strong> (base class), <strong>SecurityContextHolder</strong> (holds Authentication), <strong>UsernamePasswordAuthenticationToken</strong> (the auth object you create), <strong>UserDetailsService</strong> (loads user data).</div>
+<div class="links"><a class="link" href="https://www.baeldung.com/spring-onceperrequestfilter" target="_blank">📖 Baeldung — OncePerRequestFilter</a><a class="link" href="https://www.bezkoder.com/spring-boot-jwt-authentication/" target="_blank">📖 BezKoder — JWT Auth Tutorial</a></div>`},
+
+{t:"SecurityConfig — The Final Version",body:`<div class="prose">Replace the temporary config. Every line has interview significance:</div>
+<div class="tbl-wrap"><table><tr><th>Line</th><th>What It Does</th><th>Interview Explanation</th></tr>
+<tr><td><code>csrf.disable()</code></td><td>Disables CSRF protection</td><td>REST APIs don't use browser cookies, so CSRF is unnecessary</td></tr>
+<tr><td><code>STATELESS</code></td><td>No server-side sessions</td><td>JWT is stateless — enables horizontal scaling (any server handles any request)</td></tr>
+<tr><td><code>permitAll()</code></td><td>Public endpoints</td><td>Register/login must work without a token (user doesn't have one yet!)</td></tr>
+<tr><td><code>addFilterBefore()</code></td><td>JWT filter placement</td><td>Must run BEFORE Spring's default auth filter so SecurityContext is set up first</td></tr></table></div>
+<div class="links"><a class="link" href="https://www.baeldung.com/spring-security-csrf" target="_blank">📖 Baeldung — CSRF</a><a class="link" href="https://docs.spring.io/spring-security/reference/" target="_blank">📄 Spring Security Docs</a></div>`}
+]},
+
+{id:"phase7",title:"Phase 7 — Error Handling & Validation",time:"45 min–1 hour",desc:"Custom exceptions, standard error DTO, GlobalExceptionHandler with @ControllerAdvice. This is what separates junior from mid-level. The fix for ChefBit's scattered error handling.",steps:[
+{t:"Custom Exceptions + ErrorResponse + GlobalExceptionHandler",body:`<div class="prose">Create 3 custom exceptions: <code>ResourceNotFoundException</code>, <code>DuplicateResourceException</code>, <code>UnauthorizedException</code> — each extending RuntimeException. Create <code>ErrorResponse</code> DTO with status, message, timestamp, path.</div>
+<div class="prose"><strong>GlobalExceptionHandler</strong> with <code>@RestControllerAdvice</code> catches ALL exceptions across ALL controllers. Map each exception type to the right HTTP status (404, 409, 400, 500).</div>
+<div class="important"><strong>Go back and replace all RuntimeExceptions</strong> in AuthService and TaskService with your custom exceptions. This is the specific improvement over ChefBit.</div>
+<div class="links"><a class="link" href="https://www.baeldung.com/exception-handling-for-rest-with-spring" target="_blank">📖 Baeldung — REST Error Handling</a></div>`}
+]},
+
+{id:"phase8",title:"Phase 8 — Testing with Postman",time:"1–1.5 hours",desc:"Test EVERY endpoint in sequence. Happy paths AND unhappy paths. Set up Authorization: Bearer token in Postman for authenticated requests.",steps:[
+{t:"Complete Testing Sequence",body:`<div class="tbl-wrap"><table><tr><th>#</th><th>Test</th><th>Expected</th><th>Verify</th></tr>
+<tr><td>1</td><td>POST /auth/register</td><td>201 + JWT</td><td>Token returned, user in DB</td></tr>
+<tr><td>2</td><td>POST /auth/register (same email)</td><td>409 Conflict</td><td>Duplicate rejected</td></tr>
+<tr><td>3</td><td>POST /auth/login</td><td>200 + JWT</td><td>Correct credentials work</td></tr>
+<tr><td>4</td><td>POST /auth/login (wrong password)</td><td>401</td><td>Generic error (no hint which field)</td></tr>
+<tr><td>5</td><td>GET /tasks (no auth header)</td><td>401</td><td>Protected endpoint rejects</td></tr>
+<tr><td>6</td><td>GET /tasks (with Bearer token)</td><td>200 + []</td><td>Auth works, empty list</td></tr>
+<tr><td>7</td><td>POST /tasks (with body + token)</td><td>201 + task</td><td>Task created, linked to user</td></tr>
+<tr><td>8</td><td>POST /tasks (empty title)</td><td>400</td><td>Validation works</td></tr>
+<tr><td>9</td><td>PUT /tasks/{id}</td><td>200 + updated</td><td>updatedAt changes</td></tr>
+<tr><td>10</td><td>PATCH /tasks/{id}/complete</td><td>200 + COMPLETED</td><td>Status changed</td></tr>
+<tr><td>11</td><td>DELETE /tasks/{id}</td><td>204</td><td>Task removed</td></tr>
+<tr><td>12</td><td>GET /tasks?status=PENDING</td><td>200 + filtered</td><td>Filtering works</td></tr></table></div>
+<div class="important"><strong>Test EVERY unhappy path:</strong> wrong IDs, missing fields, expired tokens, accessing another user's tasks. This is what interviewers mean by "edge cases."</div>
+<div class="links"><a class="link" href="https://www.postman.com/downloads/" target="_blank">🔧 Download Postman</a><a class="link" href="https://learning.postman.com/docs/sending-requests/authorization/bearer-token/" target="_blank">📖 Postman — Bearer Token Auth</a></div>`}
+]},
+
+{id:"phase9",title:"Phase 9 — Logging & Final Polish",time:"30 min",desc:"Replace System.out.println with SLF4J, verify all patterns are consistent, run through the final polish checklist.",steps:[
+{t:"SLF4J Logging & Log Levels",body:`<div class="prose">Add <code>@Slf4j</code> (Lombok) to service classes. Use <code>log.info()</code>, <code>log.warn()</code>, <code>log.error()</code> instead of System.out.println.</div>
+<div class="tbl-wrap"><table><tr><th>Level</th><th>When to Use</th><th>Example</th></tr>
+<tr><td><strong>DEBUG</strong></td><td>Granular debugging (off in prod)</td><td>"Entering method X with params Y"</td></tr>
+<tr><td><strong>INFO</strong></td><td>Normal operations</td><td>"User registered successfully"</td></tr>
+<tr><td><strong>WARN</strong></td><td>Unexpected but not broken</td><td>"Failed login attempt"</td></tr>
+<tr><td><strong>ERROR</strong></td><td>Something is broken</td><td>"Database connection failed"</td></tr></table></div>
+<div class="important"><strong>NEVER log sensitive data</strong> like passwords, tokens, or personal info.</div>`},
+
+{t:"Final Polish Checklist",body:`<div class="checklist" id="polish-checklist">
+</div>`}
+]},
+
+{id:"interview",title:"Interview Talking Points",time:"15 min read",desc:"How to talk about TaskFlow alongside ChefBit. The two-project narrative, confident statements, and how TaskFlow explicitly fixes ChefBit's weaknesses.",steps:[
+{t:"Your Two-Project Narrative",body:`<div class="interview">"I have two projects that demonstrate different aspects. <strong>ChefBit</strong> is a production Android app with 900+ users — OpenAI integration, OTP-based JWT auth, Firebase notifications, Google Play subscriptions. <strong>TaskFlow</strong> is a focused backend project I built from scratch to solidify my Spring Boot fundamentals — clean architecture, proper security, validation, error handling, logging. ChefBit shows I can ship products; TaskFlow shows I understand the engineering behind them."</div>`},
+
+{t:"How TaskFlow Fixes ChefBit's Weaknesses",body:`<div class="tbl-wrap"><table><tr><th>ChefBit Issue</th><th>TaskFlow Fix</th><th>Interview Quote</th></tr>
+<tr><td>Hardcoded JWT secret</td><td>@Value from properties</td><td>"I learned that secrets must be externalized"</td></tr>
+<tr><td>@Data on JPA entities</td><td>@Getter @Setter separately</td><td>"I now understand why @Data is risky for entities"</td></tr>
+<tr><td>Mixed DI styles</td><td>Constructor injection everywhere</td><td>"I standardized on constructor injection for testability"</td></tr>
+<tr><td>System.out.println</td><td>SLF4J + @Slf4j</td><td>"Proper logging was a key improvement"</td></tr>
+<tr><td>Scattered try-catch</td><td>Global @ControllerAdvice</td><td>"Centralized error handling gives consistent responses"</td></tr>
+<tr><td>No input validation</td><td>@Valid + Bean Validation</td><td>"Every request is validated before business logic"</td></tr></table></div>`}
+]},
+
+{id:"checklist",title:"Self-Evaluation Checklist",time:"20 min",desc:"After building TaskFlow, go through each question. If you can't answer confidently without looking at code, go back and study that section.",steps:[
+{t:"Can You Answer These Without Looking at Code?",body:`<div class="checklist" id="eval-checklist"></div>`}
+]}
+];
+
+const POLISH_ITEMS=["Every service uses constructor injection (no @Autowired on fields)","All entities use @Getter @Setter, not @Data","JWT secret in application.properties via @Value","All RuntimeExceptions replaced with custom exceptions","GlobalExceptionHandler catches all exception types","Request DTOs have @NotBlank, @Size, @Email validation","Controllers use @Valid on request bodies","SLF4J logging replaces all System.out.println","Every task operation verifies ownership","Code compiles, runs, and all Postman tests pass"];
+
+const EVAL_ITEMS=["What annotations go on a JPA entity and what does each do?","Difference between @ManyToOne and @OneToMany? Which side has the FK?","Why @Getter @Setter instead of @Data on JPA entities?","What does @PrePersist do and when does it trigger?","How does Spring Data JPA generate SQL from method names?","What does JpaRepository give you for free?","Why use DTOs instead of returning entities from controllers?","What is constructor injection and why is it better than @Autowired?","Walk through the JWT auth flow from login to protected endpoint.","What is OncePerRequestFilter and why does your JWT filter extend it?","What does SessionCreationPolicy.STATELESS do?","Why addFilterBefore and what happens without it?","What is @ControllerAdvice and how does it work?","What happens when @Valid fails? How does the error reach the client?","Difference between GET, POST, PUT, PATCH, DELETE?","How do you get the authenticated user in a controller?","Why verify task ownership in every service method?","What are SLF4J log levels and when to use each?","How would you add pagination to the task listing?"];
+
+// State
+let cur=0,done=new Set();
+try{const s=localStorage.getItem('tf_done');if(s)done=new Set(JSON.parse(s))}catch(e){}
+function sv(){try{localStorage.setItem('tf_done',JSON.stringify([...done]))}catch(e){}}
+function totalSteps(){return CH.reduce((a,c)=>a+c.steps.length,0)}
+
+function renderNav(){
+const nav=document.getElementById('sbNav');let h='';
+CH.forEach((c,i)=>{
+if(i===0)h+='<div class="sb-phase">Getting Started</div>';
+if(i===2)h+='<div class="sb-phase">Build Phases</div>';
+if(i===9)h+='<div class="sb-phase">Ship & Prepare</div>';
+const d=c.steps.filter((_,si)=>done.has(c.id+'-'+si)).length;
+h+=`<div class="sb-item ${i===cur?'active':''}" onclick="go(${i})"><span class="sb-num">${i+1}</span>${c.title}<span class="sb-prog">${d}/${c.steps.length}</span></div>`;
+});
+nav.innerHTML=h;
+const pct=totalSteps()?Math.round(done.size/totalSteps()*100):0;
+document.getElementById('sbFill').style.width=pct+'%';
+document.getElementById('sbProg').textContent=pct+'%';
+document.getElementById('sbDone').textContent=done.size;
+document.getElementById('sbTotal').textContent=totalSteps();
+}
+
+function renderPage(){
+const c=CH[cur];let h=`<div class="pg-hdr"><div class="pg-ey">Chapter ${cur+1} of ${CH.length}</div><h1 class="pg-title">${c.title}</h1><p class="pg-desc">${c.desc}</p>`;
+if(c.time)h+=`<span class="pg-time">⏱ ${c.time}</span>`;
+h+='</div>';
+c.steps.forEach((s,si)=>{
+const key=c.id+'-'+si,isDone=done.has(key);
+h+=`<div class="step ${isDone?'done':''}" style="animation-delay:${si*.04}s" id="s-${key}">`;
+h+=`<div class="step-hdr" onclick="tog('${key}')"><div class="step-chk" onclick="event.stopPropagation();chk('${key}')">${isDone?'✓':''}</div><div class="step-title">${s.t}</div><span class="step-arrow">▾</span></div>`;
+h+=`<div class="step-body"><div class="step-inner">${s.body}</div></div></div>`;
+});
+document.getElementById('mc').innerHTML=h;
+
+// Render checklists
+const pc=document.getElementById('polish-checklist');
+if(pc)pc.innerHTML=POLISH_ITEMS.map((t,i)=>{const k='pl-'+i,c=done.has(k);return`<div class="cl-item"><div class="cl-chk ${c?'checked':''}" onclick="clChk('${k}',this)">${c?'✓':''}</div><div class="cl-text">${t}</div></div>`;}).join('');
+const ec=document.getElementById('eval-checklist');
+if(ec)ec.innerHTML=EVAL_ITEMS.map((t,i)=>{const k='ev-'+i,c=done.has(k);return`<div class="cl-item"><div class="cl-chk ${c?'checked':''}" onclick="clChk('${k}',this)">${c?'✓':''}</div><div class="cl-text">${t}</div></div>`;}).join('');
+}
+
+function go(i){cur=i;renderNav();renderPage();window.scrollTo(0,0);if(innerWidth<769)toggleSB();}
+function tog(k){document.getElementById('s-'+k).classList.toggle('open')}
+function chk(k){if(done.has(k))done.delete(k);else done.add(k);sv();renderNav();renderPage();}
+function clChk(k,el){if(done.has(k))done.delete(k);else done.add(k);sv();el.classList.toggle('checked');el.textContent=done.has(k)?'✓':'';const txt=el.nextElementSibling;if(txt)txt.style.textDecoration=done.has(k)?'line-through':'none';}
+function toggleSB(){document.getElementById('sb').classList.toggle('open');document.getElementById('ov').classList.toggle('show');}
+function copyCode(btn){const pre=btn.closest('.code-block').querySelector('.code-pre');const t=pre.innerText;navigator.clipboard.writeText(t).then(()=>{btn.textContent='Copied!';setTimeout(()=>btn.textContent='Copy',1500)});}
+
+renderNav();renderPage();
+</script>
+</body>
+</html>
